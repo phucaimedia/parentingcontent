@@ -268,7 +268,7 @@
                             
                             <div class="space-y-3">
                                 <input type="text" id="symptom" placeholder="🚩 Triệu chứng bề mặt (VD: Đóng sầm cửa...)" class="w-full rounded-xl p-3 bg-white shadow-sm text-sm">
-                                <textarea id="casestudy" rows="3" placeholder="📖 Case Study thực tế để phân tích..." class="w-full rounded-xl p-3 bg-white shadow-sm custom-scrollbar text-sm"></textarea>
+                                <input type="text" id="daoCu" placeholder="🎁 Đạo cụ ẩn dụ (không bắt buộc), VD: trái xoài sống & trái xoài chín" class="w-full rounded-xl p-3 bg-white shadow-sm text-sm mt-2">
                             </div>
                         </div>
                         
@@ -662,6 +662,7 @@ Pillar: ${checkedPillars} | Tử huyệt: ${painpoint} | Độ tuổi: ${ageVal}
             const sym = document.getElementById('symptom').value;
             const caseSt = document.getElementById('casestudy').value;
             const ctaType = document.getElementById('ctaType').value;
+            const daoCu = document.getElementById('daoCu').value.trim();
 
             // Xử lý biến số Khác (Other)
             let contextVal = document.getElementById('settingContext').value;
@@ -735,6 +736,9 @@ Mỗi Chương gồm 6 hàng nối tiếp:
 - [Tên Chương] - Bước 6: Đoạn kết & CTA (${ctaInstruction}).
 
 *Cột Giá trị cốt lõi: Ở Bước 1 ghi Tóm tắt & Bài học. Từ Bước 2 đến 6 ghi dấu "-".*`;
+            if (daoCu) {
+                systemPromptText += `\n\nĐẠO CỤ / VẬT ẨN DỤ BẮT BUỘC LỒNG GHÉP: Hãy khéo léo dùng "${daoCu}" làm hình ảnh ẩn dụ xuyên suốt kịch bản — Coach có thể cầm/giơ vật này lên để minh họa bài học. Lồng tự nhiên, nhất quán từ Hook đến Kết, đừng nhắc gượng ép.`;
+            }
 
             document.getElementById('loadingIndicator').classList.remove('hidden');
             document.getElementById('loadingIndicator').classList.add('flex');
