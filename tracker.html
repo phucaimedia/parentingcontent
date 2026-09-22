@@ -34,14 +34,14 @@
     </div>
   </div>
 
-  <!-- Modal xem KB Demo -->
+  
   <div id="modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center p-4 z-50">
-    <div class="bg-white rounded-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto p-6">
+    <div class="bg-white rounded-xl max-w-5xl w-full max-h-[85vh] overflow-y-auto p-6">
       <div class="flex justify-between items-center mb-4">
         <h3 id="modalTitle" class="font-bold text-lg"></h3>
         <button onclick="document.getElementById('modal').classList.add('hidden')" class="text-slate-400 hover:text-slate-700 text-2xl">&times;</button>
       </div>
-      <pre id="modalBody" class="whitespace-pre-wrap break-words text-sm text-slate-700 font-sans"></pre>
+      <div id="modalBody" class="text-sm text-slate-700 leading-relaxed"></div>
     </div>
   </div>
 
@@ -50,9 +50,83 @@
 
     function esc(s){ return (s||"").toString().replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
+    // --- Render markdown (+ inline HTML sẵn có như <b style="color:red">) thành HTML ---
+    function renderInline(s){
+      s = (s || '');
+      // **đậm** -> <strong>  (giữ nguyên các thẻ HTML sẵn có như <b style="color:red;">)
+      s = s.replace(/\*\*([^*]+?)\*\*/g, '<strong>$1</strong>');
+      // *nghiêng* -> <em>
+      s = s.replace(/(^|[^*])\*([^*\n]+?)\*(?!\*)/g, '$1<em>$2</em>');
+      return s;
+    }
+
+    function renderTable(tblLines){
+      const rows = tblLines.map(r =>
+        r.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map(c => c.trim())
+      );
+      const isSep = cells => cells.length && cells.every(c => /^:?-{2,}:?$/.test(c));
+      let header = null; const body = [];
+      rows.forEach(cells => {
+        if (isSep(cells)) return;
+        if (header === null) header = cells; else body.push(cells);
+      });
+      let h = '<div class="overflow-x-auto my-3"><table class="min-w-full border border-slate-300 text-sm">';
+      if (header){
+        h += '<thead class="bg-slate-100"><tr>';
+        header.forEach(c => h += '<th class="border border-slate-300 px-3 py-2 text-left font-semibold align-top">' + renderInline(c) + '</th>');
+        h += '</tr></thead>';
+      }
+      h += '<tbody>';
+      body.forEach(cells => {
+        h += '<tr class="align-top">';
+        cells.forEach(c => h += '<td class="border border-slate-300 px-3 py-2 align-top">' + renderInline(c) + '</td>');
+        h += '</tr>';
+      });
+      h += '</tbody></table></div>';
+      return h;
+    }
+
+    function mdToHtml(md){
+      const lines = (md || '').split(/\r?\n/);
+      let html = ''; let i = 0; let inList = false;
+      const closeList = () => { if (inList){ html += '</ul>'; inList = false; } };
+      const isTableRow = l => /^\s*\|.*\|\s*$/.test(l);
+      while (i < lines.length){
+        const line = lines[i];
+        if (isTableRow(line)){
+          const tbl = [];
+          while (i < lines.length && isTableRow(lines[i])){ tbl.push(lines[i]); i++; }
+          closeList(); html += renderTable(tbl); continue;
+        }
+        const t = line.trim();
+        if (t === ''){ closeList(); i++; continue; }
+        if (/^-{3,}$/.test(t)){ closeList(); html += '<hr class="my-4 border-slate-200">'; i++; continue; }
+        const hm = t.match(/^(#{1,6})\s+(.*)$/);
+        if (hm){
+          closeList();
+          const lvl = hm[1].length;
+          const size = lvl <= 1 ? 'text-xl' : lvl === 2 ? 'text-lg' : 'text-base';
+          html += '<h' + lvl + ' class="font-bold ' + size + ' text-slate-800 mt-4 mb-2">' + renderInline(hm[2]) + '</h' + lvl + '>';
+          i++; continue;
+        }
+        const lm = t.match(/^[-*]\s+(.*)$/);
+        if (lm){
+          if (!inList){ html += '<ul class="list-disc pl-5 space-y-1 my-2">'; inList = true; }
+          html += '<li>' + renderInline(lm[1]) + '</li>';
+          i++; continue;
+        }
+        closeList();
+        html += '<p class="my-2">' + renderInline(t) + '</p>';
+        i++;
+      }
+      closeList();
+      return html;
+    }
+
     function showDemo(title, body){
       document.getElementById('modalTitle').textContent = title;
-      document.getElementById('modalBody').textContent = body || "(chưa có nội dung)";
+      const el = document.getElementById('modalBody');
+      el.innerHTML = body ? mdToHtml(body) : '<span class="text-slate-400">(chưa có nội dung)</span>';
       const m = document.getElementById('modal');
       m.classList.remove('hidden'); m.classList.add('flex');
     }
